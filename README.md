@@ -1,8 +1,9 @@
 # Betting Bot — AI-Powered Parlay Analysis
 
 Quantitative sports betting analysis system focused on elite football.
-Uses Gemini API (free tier) to generate statistical analysis, Poisson modeling,
-Monte Carlo simulation, and optimized parlay construction for DoradoBet.
+Uses Gemini API (free tier) + API-Football (free tier) to fetch real today's matches,
+generate statistical analysis, Poisson modeling, Monte Carlo simulation,
+and optimized parlay construction for DoradoBet.
 
 ---
 
@@ -10,8 +11,9 @@ Monte Carlo simulation, and optimized parlay construction for DoradoBet.
 
 ```
 betting-bot/
-├── config.py          ← EDIT DAILY (bankroll, date, matches)
-├── analyzer.py        ← Analysis engine (do not edit)
+├── config.py          ← EDIT DAILY (bankroll only — matches are automatic)
+├── data_fetcher.py    ← Fetches real today's matches from API-Football
+├── analyzer.py        ← Analysis engine powered by Gemini AI
 ├── main.py            ← Entry point — run this every day
 ├── .env               ← API keys (never commit to git)
 ├── .gitignore         ← Protects your .env
@@ -47,15 +49,25 @@ pip install google-genai python-dotenv requests
 3. Click **"Create API key"** → **"Create API key in new project"**
 4. Copy the generated key
 
-### 5. Configure the `.env` file
+### 5. Get your free API-Football key
+
+1. Go to [dashboard.api-football.com](https://dashboard.api-football.com)
+2. Sign up — no credit card required
+3. Confirm your email
+4. Copy the API key from your dashboard
+
+### 6. Configure the `.env` file
 
 Create a `.env` file in the project root:
 
 ```env
 GEMINI_API_KEY=AIzaSy_xxxxxxxxxxxxxxxxxxxxxxxx
+API_FOOTBALL_KEY=your_api_football_key_here
 ```
 
-### 6. Create `.gitignore`
+> ⚠️ Variable names are case-sensitive. Use exactly `GEMINI_API_KEY` and `API_FOOTBALL_KEY`.
+
+### 7. Create `.gitignore`
 
 ```bash
 echo ".env" >> .gitignore
@@ -71,28 +83,25 @@ echo "__pycache__/" >> .gitignore
 ### Step 1 — Update bankroll in `config.py`
 
 ```python
-BANCA_ACTUAL = 5000   # ← update this every day
+BANCA_ACTUAL = 5000   # ← update this every day with your real bankroll
 ```
 
-### Step 2 — Optional: specify matches
+That's it. Matches are fetched automatically — no need to enter them manually.
 
-```python
-PARTIDOS_ESPECIFICOS = [
-    "Real Madrid vs Barcelona",
-    "Liverpool vs Arsenal",
-]
-# Leave empty [] for automatic search
-```
-
-### Step 3 — Run the analysis
+### Step 2 — Run the analysis
 
 ```bash
 python main.py
 ```
 
-### Step 4 — Read the report
+### Step 3 — Read the report
 
-The report is printed to the console and automatically saved in `outputs/`.
+The bot will:
+1. Fetch all real today's matches from API-Football
+2. Filter matches from core leagues only
+3. Send them to Gemini for full quantitative analysis
+4. Print the complete report to console
+5. Save the report automatically in `outputs/`
 
 ---
 
@@ -113,13 +122,18 @@ Stage is **automatically detected** based on the bankroll set in `config.py`.
 ## 🏆 Leagues Covered
 
 **Core (highest priority)**
-- UEFA Champions League / Europa League
-- Premier League, La Liga, Serie A
-- Bundesliga, Ligue 1
-- English Championship, Eredivisie
+- UEFA Champions League (ID: 2)
+- UEFA Europa League (ID: 3)
+- Premier League (ID: 39)
+- La Liga (ID: 140)
+- Serie A (ID: 135)
+- Bundesliga (ID: 78)
+- Ligue 1 (ID: 61)
+- English Championship (ID: 40)
+- Eredivisie (ID: 88)
 
 **Secondary (only if statistically superior)**
-- UEFA Conference League
+- UEFA Conference League (ID: 848)
 - Liga Promerica / Copa Costa Rica
 - UEFA Qualifiers
 
@@ -147,9 +161,9 @@ Each run executes 10 phases:
 Every analysis generates a full report with:
 
 - Day summary and detected bankroll stage
-- Detailed analysis of top candidate matches
-- Top 5 picks of the day
-- **Main recommended parlay** with stake in ₡
+- Detailed analysis of top candidate matches with xG, form, probable scores
+- Top 5 picks of the day ranked by confidence
+- **Main recommended parlay** with stake in ₡ and potential return
 - Conservative alternative parlay
 - Best single pick of the day
 - Final conclusion and betting recommendation
@@ -158,26 +172,30 @@ Every analysis generates a full report with:
 
 ## 🛠️ Troubleshooting
 
-**Error: `GEMINI_API_KEY not found`**
-→ Check that the `.env` file exists and contains the correct key
+**`Key cargada: 'None'` / API key not loading**
+→ Check variable names in `.env` — must be exactly `GEMINI_API_KEY` and `API_FOOTBALL_KEY`
+→ No spaces around `=`, no quotes: `API_FOOTBALL_KEY=abc123` ✓
+→ Make sure `.env` is in the same folder as `main.py`
 
-**Error: `ModuleNotFoundError`**
-→ Run `pip install google-genai python-dotenv requests`
+**Error HTTP 403 on API-Football**
+→ Usually means the key name in `.env` doesn't match what the code reads
+→ Run `python test_api.py` to diagnose
 
-**Error: `429 RESOURCE_EXHAUSTED`**
-→ The model is temporarily rate-limited. Wait 30 seconds and try again.
+**Error: `429 RESOURCE_EXHAUSTED` on Gemini**
+→ Model temporarily rate-limited. Wait 30 seconds and retry.
 → Or switch model in `analyzer.py` to `gemini-2.5-flash-lite`
 
+**0 matches found today**
+→ API-Football free tier has a limit of 100 requests/day
+→ Check remaining requests at dashboard.api-football.com
+→ Or manually add matches in `config.py` under `PARTIDOS_ESPECIFICOS`
+
 **Pylance warning: `Import could not be resolved`**
-→ This is a VS Code display issue only — the code runs fine.
+→ VS Code display issue only — code runs fine
 → Fix: `Ctrl+Shift+P` → "Python: Select Interpreter" → select Python 3.11
 
 **Report is too short or incomplete**
 → Change model in `analyzer.py` to `gemini-2.5-pro` for deeper analysis
-
-**Matches not from today**
-→ Gemini uses internal knowledge. For real-time data, manually specify
-  matches in `PARTIDOS_ESPECIFICOS` inside `config.py`
 
 ---
 
@@ -193,9 +211,9 @@ Every analysis generates a full report with:
 
 ## 📈 Future Roadmap
 
-- [ ] API-Football integration for real-time match data
-- [ ] Web dashboard to visualize analysis history
-- [ ] Automatic result tracking vs predictions
+- [ ] Pull real xG and form data from API-Football for each match
+- [ ] Web dashboard to visualize analysis history and track results
+- [ ] Automatic result tracking vs predictions (hit rate over time)
 - [ ] Telegram alerts when a strong parlay is available
 
 ---
