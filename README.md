@@ -15,7 +15,7 @@ betting-bot/
 ├── data_fetcher.py    ← Fetches real today's matches from API-Football
 ├── analyzer.py        ← Analysis engine powered by Gemini AI
 ├── main.py            ← Entry point — run this every day
-├── .env               ← API keys (never commit to git)
+├── .env               ← API keys
 ├── .gitignore         ← Protects your .env
 ├── logs/              ← Analysis history
 └── outputs/           ← Generated reports
